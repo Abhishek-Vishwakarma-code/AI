@@ -1,0 +1,264 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: platform
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: platform-config
+  namespace: platform
+data:
+  DATABASE_URL: "postgresql://platform_user:platform_secure_pass_9988@postgres-service:5432/platform_prod"
+  REDIS_URL: "redis://redis-service:6379/0"
+  QDRANT_URL: "http://qdrant-service:6333"
+  INFERENCE_MODE: "real"
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-deployment
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        env:
+        - name: POSTGRES_USER
+          value: "platform_user"
+        - name: POSTGRES_PASSWORD
+          value: "platform_secure_pass_9988"
+        - name: POSTGRES_DB
+          value: "platform_prod"
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: pg-storage
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: pg-storage
+        emptyDir: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-service
+  namespace: platform
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app: postgres
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-service
+  namespace: platform
+spec:
+  ports:
+  - port: 6379
+  selector:
+    app: redis
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qdrant-deployment
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: qdrant
+  template:
+    metadata:
+      labels:
+        app: qdrant
+    spec:
+      containers:
+      - name: qdrant
+        image: qdrant/qdrant:latest
+        ports:
+        - containerPort: 6333
+        - containerPort: 6334
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qdrant-service
+  namespace: platform
+spec:
+  ports:
+  - name: HTTP
+    port: 6333
+  - name: GRPC
+    port: 6334
+  selector:
+    app: qdrant
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      # GPU Tolerations and Node Selectors can be enabled in production environments
+      # tolerations:
+      # - key: "nvidia.com/gpu"
+      #   operator: "Exists"
+      #   effect: "NoSchedule"
+      containers:
+      - name: backend
+        image: platform-backend:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: platform-config
+        resources:
+          limits:
+            cpu: "2"
+            memory: 4Gi
+            # nvidia.com/gpu: "1" # Request a GPU for local model processing
+          requests:
+            cpu: "1"
+            memory: 2Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+  namespace: platform
+spec:
+  ports:
+  - port: 8000
+  selector:
+    app: backend
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deployment
+  namespace: platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: frontend
+        image: platform-frontend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://backend-service:8000/api/v1"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+  namespace: platform
+spec:
+  ports:
+  - port: 3000
+  selector:
+    app: frontend
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: platform-ingress
+  namespace: platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /api
+        pathType: Prefix
+        backend:
+          service:
+            name: backend-service
+            port:
+              number: 8000
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: frontend-service
+            port:
+              number: 3000
+
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: backend-hpa
+  namespace: platform
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: backend-deployment
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80

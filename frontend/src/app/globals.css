@@ -1,0 +1,76 @@
+@import "tailwindcss";
+
+:root {
+  --background: #050508;
+  --foreground: #f3f4f6;
+  --card: rgba(13, 13, 23, 0.5);
+  --card-border: rgba(124, 58, 237, 0.15);
+  --primary: #8b5cf6;
+  --primary-hover: #7c3aed;
+  --accent: #06b6d4;
+  --sidebar: #09090e;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card-bg: var(--card);
+  --color-card-border: var(--card-border);
+  --color-primary-color: var(--primary);
+  --color-accent-color: var(--accent);
+  --color-sidebar-bg: var(--sidebar);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism card styles */
+.glass-panel {
+  background: rgba(10, 10, 20, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.glass-panel-glow {
+  background: rgba(12, 10, 28, 0.65);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(139, 92, 246, 0.18);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37), 0 0 16px 0 rgba(139, 92, 246, 0.05);
+}
+
+/* Custom Scrollbar for Chat */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.25);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.45);
+}
+
+/* Micro-animations */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.6;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.1);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 35px rgba(139, 92, 246, 0.25);
+  }
+}
+
+.animate-pulse-glow {
+  animation: pulseGlow 4s infinite ease-in-out;
+}
