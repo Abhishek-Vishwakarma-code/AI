@@ -9,6 +9,7 @@ except ImportError:
     HAS_TORCH = False
 from app.services.search_engine import ResearchEngine
 from app.services.media_services import MediaService
+from app.core.config import settings
 
 class LocalLLM:
     """
@@ -21,6 +22,9 @@ class LocalLLM:
         self._init_model()
 
     def _init_model(self):
+        if settings.INFERENCE_MODE == "mock":
+            print("Running LocalLLM in mock mode. Skipping transformer model load.")
+            return
         try:
             from transformers import pipeline
             # TinyLlama is selected because it runs fast even on standard laptop CPUs (1.1 Billion parameters)
@@ -192,22 +196,36 @@ class SupervisorOrchestrator:
                 "task": f"Generate code files, explanations, and unit tests for: {query}"
             })
             
-        if any(w in query_lower for w in ["image", "picture", "draw", "art", "generate photo"]):
+        is_image_to_video = any(w in query_lower for w in ["image to video", "image-to-video", "i2v", "animate this image"])
+
+        if is_image_to_video:
+            plan.append({
+                "assigned_agent": "VideoAgent",
+                "task": f"Create image-to-video motion clip for: {query}"
+            })
+
+        if not is_image_to_video and any(w in query_lower for w in ["image", "picture", "draw", "art", "generate photo", "render", "poster", "logo"]):
             plan.append({
                 "assigned_agent": "ImageAgent",
                 "task": f"Generate Stable Diffusion image for: {query}"
             })
             
-        if any(w in query_lower for w in ["video", "animate", "clip", "movie"]):
+        if any(w in query_lower for w in ["video", "animate", "clip", "movie", "cinematic", "motion"]):
             plan.append({
                 "assigned_agent": "VideoAgent",
                 "task": f"Create video clip for: {query}"
             })
 
+        if any(w in query_lower for w in ["talk", "talking", "speech", "voice", "audio", "read aloud", "say this"]):
+            plan.append({
+                "assigned_agent": "AudioAgent",
+                "task": f"Generate spoken AI response for: {query}"
+            })
+
         if not plan:
             plan.append({
-                "assigned_agent": "ResearchAgent",
-                "task": f"Formulate default answer for query: {query}"
+                "assigned_agent": "ConversationalAgent",
+                "task": f"Respond conversationally to: {query}"
             })
 
         return plan

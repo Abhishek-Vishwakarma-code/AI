@@ -1,0 +1,13 @@
+
+> frontend@0.1.0 dev
+> next dev --hostname 0.0.0.0 --port 3000
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://0.0.0.0:3000
+✓ Ready in 4.5s
+Creating turbopack project { dir: 'D:\\Abhishek\\AI\\frontend', testMode: true }
+
+○ Compiling / ...
+✓ Finished writing to filesystem cache in 29.4s
+✓ Finished writing to filesystem cache in 16.2s

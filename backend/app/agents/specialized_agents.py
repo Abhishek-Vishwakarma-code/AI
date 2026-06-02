@@ -95,6 +95,26 @@ class CodingAgent(AgentBase):
         return generated_code, step_logs, {"code_blocks": code_blocks}
 
 
+class ConversationalAgent(AgentBase):
+    def __init__(self):
+        super().__init__("ConversationalAgent", "Handles natural, interactive assistant dialogue and follow-up questions.")
+
+    def execute(self, task: str, context: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+        step_logs = [{
+            "agent": self.name,
+            "thought": "Preparing a direct conversational response with helpful next-step awareness.",
+            "action": "Interactive Dialogue"
+        }]
+        response = self.llm.generate(
+            prompt=task,
+            system_prompt=(
+                "You are a warm, capable multimodal AI assistant. Answer naturally, ask concise follow-up "
+                "questions only when needed, and mention when you can generate images, videos, speech, or code."
+            )
+        )
+        return response, step_logs, {}
+
+
 class ImageAgent(AgentBase):
     def __init__(self):
         super().__init__("ImageAgent", "Translates styling directives into image generation commands and runs upscale editing.")
@@ -145,3 +165,19 @@ class VideoAgent(AgentBase):
         
         report = f"Generated local motion clip. [Link]({video_res['url']})"
         return report, step_logs, {"videos": [video_res]}
+
+
+class AudioAgent(AgentBase):
+    def __init__(self):
+        super().__init__("AudioAgent", "Creates speech output for talking AI responses and voice interactions.")
+
+    def execute(self, task: str, context: Dict[str, Any]) -> Tuple[str, List[Dict[str, Any]], Dict[str, Any]]:
+        step_logs = [{
+            "agent": self.name,
+            "thought": "Generating spoken response audio from the requested dialogue.",
+            "action": "Text To Speech"
+        }]
+        media_service = context["media_service"]
+        audio_res = media_service.generate_speech(task)
+        report = f"Generated talking AI audio. [Listen]({audio_res['url']})"
+        return report, step_logs, {"audio": [audio_res]}

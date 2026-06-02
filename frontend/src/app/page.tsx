@@ -293,6 +293,17 @@ export default function Home() {
     ]);
   };
 
+  const resetAuthState = () => {
+    localStorage.removeItem("platform_token");
+    setToken(null);
+    setUser(null);
+    setWorkspaces([]);
+    setCurrentWorkspace(null);
+    setSessions([]);
+    setCurrentSession(null);
+    setMessages([]);
+  };
+
   const fetchUserData = async (jwtToken: string) => {
     if (jwtToken === "sandbox") {
       createSandboxState();
@@ -308,7 +319,7 @@ export default function Home() {
         setUser(userData);
         fetchWorkspaces(jwtToken);
       } else {
-        handleLogout();
+        resetAuthState();
       }
     } catch {
       createSandboxState();
@@ -396,7 +407,9 @@ export default function Home() {
 
   useEffect(() => {
     if (currentWorkspace && token) {
-      fetchDocuments();
+      window.setTimeout(() => {
+        fetchDocuments();
+      }, 0);
     }
   }, [currentWorkspace, token, activeTab]);
 
@@ -447,14 +460,7 @@ export default function Home() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem("platform_token");
-    setToken(null);
-    setUser(null);
-    setWorkspaces([]);
-    setCurrentWorkspace(null);
-    setSessions([]);
-    setCurrentSession(null);
-    setMessages([]);
+    resetAuthState();
   };
 
   const startNewChat = () => {

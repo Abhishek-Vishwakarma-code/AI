@@ -1,0 +1,97 @@
+⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of D:\Abhishek\AI\package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * D:\Abhishek\AI\frontend\package-lock.json
+
+⚠ Slow filesystem detected. The benchmark took 349ms. If D:\Abhishek\AI\frontend/.next/dev is a network drive, consider moving it to a local folder.
+See more: https://nextjs.org/docs/app/guides/local-development
+
+
+#
+# Fatal process out of memory: Re-embedded builtins: set permissions
+#
+----- Native stack trace -----
+
+ 1: 00007FF636B11427 node::SetCppgcReference+16599
+ 2: 00007FF6369E5D3F node::TriggerNodeReport+74095
+ 3: 00007FF637C4BC16 v8::base::FatalOOM+54
+ 4: 00007FF6375E6403 v8::Isolate::ReportExternalAllocationLimitReached+147
+ 5: 00007FF6375D2F36 v8::Function::Experimental_IsNopFunction+3302
+ 6: 00007FF63747C52A v8::CppHeap::wrapper_descriptor+55594
+ 7: 00007FF6374A359A v8::base::CPU::has_sse41+82026
+ 8: 00007FF6374A157F v8::base::CPU::has_sse41+73807
+ 9: 00007FF6370D4793 v8::base::AddressSpaceReservation::AddressSpaceReservation+12051
+10: 00007FF6375DC061 v8::Isolate::Initialize+433
+11: 00007FF636B5136D node::NewContext+397
+12: 00007FF6369351B5 X509_CRL_get_meth_data+138661
+13: 00007FF63693A2A3 X509_CRL_get_meth_data+159379
+14: 00007FF63692F345 X509_CRL_get_meth_data+114485
+15: 00007FF636B72263 uv_poll_stop+371
+16: 00007FF638360BCB inflateValidate+172219
+17: 00007FF87DCCE957 BaseThreadInitThunk+23
+18: 00007FF87E62427C RtlUserThreadStart+44
+
+<--- Last few GCs --->
+
+
+<--- JS stacktrace --->
+
+
+
+#
+# Fatal JavaScript out of memory: MemoryChunk allocation failed during deserialization.
+#
+----- Native stack trace -----
+
+ 1: 00007FF636B11427 node::SetCppgcReference+16599
+ 2: 00007FF6369E5D3F node::TriggerNodeReport+74095
+ 3: 00007FF637C4BC16 v8::base::FatalOOM+54
+ 4: 00007FF6375E6403 v8::Isolate::ReportExternalAllocationLimitReached+147
+ 5: 00007FF6375D2F36 v8::Function::Experimental_IsNopFunction+3302
+ 6: 00007FF63742F870 v8::internal::StrongRootAllocatorBase::StrongRootAllocatorBase+33904
+ 7: 00007FF6373F6891 v8::internal::ThreadIsolation::JitPageReference::Size+3121
+ 8: 00007FF6373F6EB0 v8::internal::ThreadIsolation::JitPageReference::Size+4688
+ 9: 00007FF6373F6BB6 v8::internal::ThreadIsolation::JitPageReference::Size+3926
+10: 00007FF6373DC7FC v8::FixedArray::Length+86508
+11: 00007FF63741D3A6 v8::internal::ThreadIsolation::JitPageReference::Size+161606
+12: 00007FF63741D030 v8::internal::ThreadIsolation::JitPageReference::Size+160720
+13: 00007FF63741C718 v8::internal::ThreadIsolation::JitPageReference::Size+158392
+14: 00007FF63741BE91 v8::internal::ThreadIsolation::JitPageReference::Size+156209
+15: 00007FF6370EF322 v8::base::AddressSpaceReservation::AddressSpaceReservation+121506
+16: 00007FF6370F0C12 v8::base::AddressSpaceReservation::AddressSpaceReservation+127890
+17: 00007FF6370EC705 v8::base::AddressSpaceReservation::AddressSpaceReservation+110213
+18: 00007FF6370F12AF v8::base::AddressSpaceReservation::AddressSpaceReservation+129583
+19: 00007FF637435878 v8::internal::StrongRootAllocatorBase::StrongRootAllocatorBase+58488
+20: 00007FF6370CC8B0 v8::internal::Version::GetString+92944
+21: 00007FF6374A1A05 v8::base::CPU::has_sse41+74965
+22: 00007FF6370D4793 v8::base::AddressSpaceReservation::AddressSpaceReservation+12051
+23: 00007FF6375DC061 v8::Isolate::Initialize+433
+24: 00007FF636B5136D node::NewContext+397
+25: 00007FF6369351B5 X509_CRL_get_meth_data+138661
+26: 00007FF63693A2A3 X509_CRL_get_meth_data+159379
+27: 00007FF63692F345 X509_CRL_get_meth_data+114485
+28: 00007FF636B72263 uv_poll_stop+371
+29: 00007FF638360BCB inflateValidate+172219
+30: 00007FF87DCCE957 BaseThreadInitThunk+23
+31: 00007FF87E62427C RtlUserThreadStart+44
+
+<--- Last few GCs --->
+
+
+<--- JS stacktrace --->
+
+FATAL ERROR: Committing semi space failed. Allocation failed - JavaScript heap out of memory
+----- Native stack trace -----
+
+ 1: 00007FF636B11427 
+ 2: 00007FF636A74878 
+ 3: 00007FF6375E63B1 
+ 4: 00007FF6375D2F36 
+ 5: 00007FF63742F870 
+ 6: 00007FF6373E74CD 
+ 7: 00007FF637438AB3 
+ 8: 00007FF63742893D 
+ 9: 00007FF6374244F5 
+10: 00007FF636DADE2D 

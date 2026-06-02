@@ -1,7 +1,7 @@
 import json
 import uuid
 from typing import List, Optional
-from fastapi import FastAPI, Depends, HTTPException, status, File, UploadFile
+from fastapi import BackgroundTasks, FastAPI, Depends, HTTPException, status, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
@@ -9,12 +9,13 @@ from pydantic import BaseModel
 
 # Internal Imports
 from app.core.config import settings
-from app.models.database import engine, Base, get_db
+from app.models.database import engine, Base, SessionLocal, get_db
 from app.models.models import User, Workspace, ChatSession, Message, Document, MediaTask
 from app.core.security import get_password_hash, verify_password, create_access_token, get_current_user, RoleChecker
 from app.services.rag_service import RAGService
 from app.agents.agent_framework import SupervisorOrchestrator
-from app.agents.specialized_agents import ResearchAgent, CodingAgent, ImageAgent, VideoAgent
+from app.agents.specialized_agents import AudioAgent, ConversationalAgent, ResearchAgent, CodingAgent, ImageAgent, VideoAgent
+from app.services.media_jobs import MediaJobRequest, MediaJobRunner
 
 # Initialize DB tables
 Base.metadata.create_all(bind=engine)
@@ -63,6 +64,9 @@ supervisor.register_agent("ResearchAgent", ResearchAgent())
 supervisor.register_agent("CodingAgent", CodingAgent())
 supervisor.register_agent("ImageAgent", ImageAgent())
 supervisor.register_agent("VideoAgent", VideoAgent())
+supervisor.register_agent("AudioAgent", AudioAgent())
+supervisor.register_agent("ConversationalAgent", ConversationalAgent())
+media_job_runner = MediaJobRunner(supervisor.media_service)
 
 # --- SCHEMAS ---
 class UserLogin(BaseModel):
@@ -89,6 +93,23 @@ class MessageSend(BaseModel):
 class MediaRequest(BaseModel):
     prompt: str
     aspect_ratio: Optional[str] = "1:1"
+
+class MultimodalGenerationRequest(BaseModel):
+    prompt: str
+    media_type: str
+    aspect_ratio: Optional[str] = "1:1"
+    image_url: Optional[str] = None
+    style: Optional[str] = None
+    quality: Optional[str] = "standard"
+    duration_seconds: Optional[int] = 5
+    motion: Optional[str] = None
+    voice_id: Optional[str] = "default"
+
+class TaskAccepted(BaseModel):
+    task_id: str
+    status: str
+    type: str
+    message: str
 
 # --- ROUTERS ---
 
@@ -281,6 +302,49 @@ def list_documents(workspace_id: int, current_user: User = Depends(get_current_u
     return db.query(Document).filter(Document.workspace_id == workspace_id).all()
 
 # 5. MULTIMODAL MEDIA GENERATION
+@app.post(f"{settings.API_V1_STR}/generate/media", response_model=TaskAccepted)
+def generate_media(
+    req: MultimodalGenerationRequest,
+    background_tasks: BackgroundTasks,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    job_request = MediaJobRequest(
+        prompt=req.prompt,
+        media_type=req.media_type,
+        aspect_ratio=req.aspect_ratio or "1:1",
+        image_url=req.image_url,
+        style=req.style,
+        quality=req.quality or "standard",
+        duration_seconds=req.duration_seconds or 5,
+        motion=req.motion,
+        voice_id=req.voice_id or "default",
+    )
+    try:
+        task = media_job_runner.create_task(db, job_request)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    background_tasks.add_task(
+        media_job_runner.run_with_session_factory,
+        SessionLocal,
+        task.id,
+        job_request,
+    )
+    return {
+        "task_id": task.id,
+        "status": task.status,
+        "type": task.type,
+        "message": "Generation queued. Poll the task endpoint for completion.",
+    }
+
+@app.get(f"{settings.API_V1_STR}/generate/tasks/{{task_id}}")
+def get_generation_task(task_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    task = db.query(MediaTask).filter(MediaTask.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Media task not found")
+    return media_job_runner.task_payload(task)
+
 @app.post(f"{settings.API_V1_STR}/generate/image")
 def generate_image(req: MediaRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     # Create Media Task record

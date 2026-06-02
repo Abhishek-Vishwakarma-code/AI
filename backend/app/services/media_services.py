@@ -1,6 +1,7 @@
 import os
 import time
 from typing import Dict, Any, Optional
+from app.core.config import settings
 try:
     import torch
     HAS_TORCH = True
@@ -18,6 +19,9 @@ class MediaService:
         """
         Dynamically initializes local machine learning models if packages are present.
         """
+        if settings.INFERENCE_MODE == "mock":
+            print("Running MediaService in mock mode. Skipping local model initialization.")
+            return
         try:
             from diffusers import StableDiffusionPipeline
             # Load lightweight SD model locally if resources permit
@@ -27,12 +31,33 @@ class MediaService:
         except ImportError:
             print("Local ML libraries (diffusers/torch) not fully loaded. Running in standard local mode.")
 
-    def generate_image(self, prompt: str, aspect_ratio: str = "1:1") -> Dict[str, Any]:
+    def _static_generated_dir(self) -> str:
+        return os.environ.get("GENERATED_MEDIA_DIR", "d:/Abhishek/AI/backend/app/static/generated")
+
+    def _aspect_resolution(self, aspect_ratio: str) -> str:
+        resolutions = {
+            "1:1": "1024x1024",
+            "16:9": "1344x768",
+            "9:16": "768x1344",
+            "4:3": "1152x864",
+            "3:4": "864x1152",
+        }
+        return resolutions.get(aspect_ratio, resolutions["1:1"])
+
+    def generate_image(
+        self,
+        prompt: str,
+        aspect_ratio: str = "1:1",
+        style: Optional[str] = None,
+        quality: str = "standard",
+    ) -> Dict[str, Any]:
         """
         Generates images locally using diffusers.StableDiffusionPipeline.
         Falls back to high-quality curated open visual streams if CPU/GPU memory is exceeded.
         """
         try:
+            if settings.INFERENCE_MODE == "mock":
+                raise RuntimeError("Mock inference mode is enabled")
             from diffusers import StableDiffusionPipeline
             if self.sd_pipeline is None:
                 # Load lightweight stable diffusion v1-5
@@ -46,15 +71,22 @@ class MediaService:
             image = self.sd_pipeline(prompt, num_inference_steps=20).images[0]
             
             # Save the image locally to a workspace directory
-            os.makedirs("d:/Abhishek/AI/backend/app/static/generated", exist_ok=True)
+            os.makedirs(self._static_generated_dir(), exist_ok=True)
             filename = f"img_{int(time.time())}.png"
-            filepath = f"d:/Abhishek/AI/backend/app/static/generated/{filename}"
+            filepath = os.path.join(self._static_generated_dir(), filename)
             image.save(filepath)
             
             return {
                 "url": f"/static/generated/{filename}",
                 "status": "completed",
-                "metadata": {"prompt": prompt, "device": self.device, "engine": "Stable Diffusion v1.5", "resolution": "512x512"}
+                "metadata": {
+                    "prompt": prompt,
+                    "style": style or "auto",
+                    "quality": quality,
+                    "device": self.device,
+                    "engine": "Stable Diffusion v1.5",
+                    "resolution": self._aspect_resolution(aspect_ratio),
+                }
             }
         except Exception as e:
             print(f"Local Stable Diffusion generation failed or bypassed: {e}. Serving high-fidelity web asset.")
@@ -75,7 +107,15 @@ class MediaService:
             return {
                 "url": image_url,
                 "status": "completed",
-                "metadata": {"prompt": prompt, "device": "fallback-cpu", "engine": "Curated Static Engine"}
+                "metadata": {
+                    "prompt": prompt,
+                    "style": style or "auto",
+                    "quality": quality,
+                    "aspect_ratio": aspect_ratio,
+                    "resolution": self._aspect_resolution(aspect_ratio),
+                    "device": "fallback-cpu",
+                    "engine": "Curated Static Engine",
+                }
             }
 
     def edit_image(self, image_url: str, prompt: str) -> Dict[str, Any]:
@@ -90,7 +130,14 @@ class MediaService:
         }
 
     # ------------------ VIDEO CAPABILITIES ------------------
-    def generate_video(self, prompt: str, image_url: Optional[str] = None) -> Dict[str, Any]:
+    def generate_video(
+        self,
+        prompt: str,
+        image_url: Optional[str] = None,
+        duration_seconds: int = 5,
+        aspect_ratio: str = "16:9",
+        motion: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Simulates local temporal frames using pre-compiled local kinetic templates.
         """
@@ -104,8 +151,33 @@ class MediaService:
         return {
             "url": video_url,
             "status": "completed",
-            "metadata": {"prompt": prompt, "resolution": "720p", "engine": "Local Frame Interpolator"}
+            "metadata": {
+                "prompt": prompt,
+                "source_image_url": image_url,
+                "duration_seconds": duration_seconds,
+                "aspect_ratio": aspect_ratio,
+                "motion": motion or "auto cinematic motion",
+                "resolution": "720p",
+                "engine": "Local Frame Interpolator",
+                "mode": "image-to-video" if image_url else "text-to-video",
+            }
         }
+
+    def generate_image_to_video(
+        self,
+        image_url: str,
+        prompt: str,
+        duration_seconds: int = 5,
+        aspect_ratio: str = "16:9",
+        motion: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        return self.generate_video(
+            prompt=prompt,
+            image_url=image_url,
+            duration_seconds=duration_seconds,
+            aspect_ratio=aspect_ratio,
+            motion=motion,
+        )
 
     # ------------------ AUDIO CAPABILITIES ------------------
     def generate_speech(self, text: str, voice_id: str = "default") -> Dict[str, Any]:
@@ -115,8 +187,8 @@ class MediaService:
         try:
             from gtts import gTTS
             filename = f"tts_{int(time.time())}.mp3"
-            os.makedirs("d:/Abhishek/AI/backend/app/static/generated", exist_ok=True)
-            filepath = f"d:/Abhishek/AI/backend/app/static/generated/{filename}"
+            os.makedirs(self._static_generated_dir(), exist_ok=True)
+            filepath = os.path.join(self._static_generated_dir(), filename)
             
             tts = gTTS(text=text, lang='en')
             tts.save(filepath)
