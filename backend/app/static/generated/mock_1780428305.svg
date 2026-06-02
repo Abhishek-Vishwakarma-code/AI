@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#101827"/>
+      <stop offset="0.52" stop-color="#253048"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1536" height="1024" fill="url(#bg)"/>
+  <rect x="104" y="82" width="1328" height="860" rx="32" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+  <circle cx="768" cy="342" r="132" fill="#9f6f4c"/>
+  <path d="M594 284c36-104 236-124 310 2-50-24-105-29-164-18-62 11-109 27-146 16z" fill="#2b1b17"/>
+  <path d="M516 796c48-164 166-248 252-248s204 84 252 248z" fill="#b8d7ff"/>
+  <path d="M616 798c42-84 92-126 152-126 62 0 112 42 152 126z" fill="#eff6ff"/>
+  <circle cx="720" cy="342" r="12" fill="#1f2937"/>
+  <circle cx="816" cy="342" r="12" fill="#1f2937"/>
+  <path d="M718 416c38 28 78 28 116 0" fill="none" stroke="#3b241c" stroke-width="10" stroke-linecap="round"/>
+  <text x="768" y="888" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#d1fae5">Local mock render</text>
+  <text x="768" y="930" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#cbd5e1">Set OPENAI_API_KEY for real image generation</text>
+  <foreignObject x="228" y="54" width="1080" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial,sans-serif;color:#f8fafc;font-size:26px;line-height:1.35;text-align:center;">proceed with background functions with test cases make sure it should be able to generate any type of image, video, image to video and proper ai talking with interaction. keep it similar to modern 2026 gemini or chatgpt generation AI. Style: Cinematic. Aspect ratio: 1:1.</div>
+  </foreignObject>
+</svg>

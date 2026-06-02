@@ -1,6 +1,8 @@
 import os
+import base64
 import time
 from typing import Dict, Any, Optional
+import httpx
 from app.core.config import settings
 try:
     import torch
@@ -32,7 +34,7 @@ class MediaService:
             print("Local ML libraries (diffusers/torch) not fully loaded. Running in standard local mode.")
 
     def _static_generated_dir(self) -> str:
-        return os.environ.get("GENERATED_MEDIA_DIR", "d:/Abhishek/AI/backend/app/static/generated")
+        return os.environ.get("GENERATED_MEDIA_DIR", settings.GENERATED_MEDIA_DIR)
 
     def _aspect_resolution(self, aspect_ratio: str) -> str:
         resolutions = {
@@ -43,6 +45,121 @@ class MediaService:
             "3:4": "864x1152",
         }
         return resolutions.get(aspect_ratio, resolutions["1:1"])
+
+    def _openai_image_size(self, aspect_ratio: str) -> str:
+        sizes = {
+            "1:1": "1024x1024",
+            "16:9": "1536x1024",
+            "9:16": "1024x1536",
+        }
+        return sizes.get(aspect_ratio, "auto")
+
+    def _generate_with_openai(
+        self,
+        prompt: str,
+        aspect_ratio: str,
+        style: Optional[str],
+        quality: str,
+    ) -> Optional[Dict[str, Any]]:
+        if not settings.OPENAI_API_KEY:
+            return None
+
+        model = settings.OPENAI_IMAGE_MODEL
+        request_prompt = prompt
+        if style:
+            request_prompt = f"{prompt}\nStyle: {style}"
+
+        response = httpx.post(
+            "https://api.openai.com/v1/images/generations",
+            headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}"},
+            json={
+                "model": model,
+                "prompt": request_prompt,
+                "size": self._openai_image_size(aspect_ratio),
+                "quality": quality if quality in {"low", "medium", "high", "auto"} else "auto",
+                "n": 1,
+            },
+            timeout=120,
+        )
+        response.raise_for_status()
+        payload = response.json()
+        image_data = payload["data"][0]
+        image_base64 = image_data.get("b64_json")
+        image_url = image_data.get("url")
+
+        if image_base64:
+            os.makedirs(self._static_generated_dir(), exist_ok=True)
+            filename = f"openai_{int(time.time())}.png"
+            filepath = os.path.join(self._static_generated_dir(), filename)
+            with open(filepath, "wb") as image_file:
+                image_file.write(base64.b64decode(image_base64))
+            image_url = f"/static/generated/{filename}"
+
+        if not image_url:
+            raise RuntimeError("OpenAI image generation returned no image data")
+
+        return {
+            "url": image_url,
+            "status": "completed",
+            "metadata": {
+                "prompt": prompt,
+                "style": style or "auto",
+                "quality": quality,
+                "aspect_ratio": aspect_ratio,
+                "engine": model,
+                "mode": "real",
+                "revised_prompt": image_data.get("revised_prompt"),
+            },
+        }
+
+    def _generate_mock_image(self, prompt: str, aspect_ratio: str, style: Optional[str], quality: str) -> Dict[str, Any]:
+        os.makedirs(self._static_generated_dir(), exist_ok=True)
+        filename = f"mock_{int(time.time())}.svg"
+        filepath = os.path.join(self._static_generated_dir(), filename)
+        safe_prompt = (
+            prompt.replace("&", "&amp;")
+            .replace("<", "&lt;")
+            .replace(">", "&gt;")
+            .replace('"', "&quot;")
+        )
+        svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#101827"/>
+      <stop offset="0.52" stop-color="#253048"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="1536" height="1024" fill="url(#bg)"/>
+  <rect x="104" y="82" width="1328" height="860" rx="32" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+  <circle cx="768" cy="342" r="132" fill="#9f6f4c"/>
+  <path d="M594 284c36-104 236-124 310 2-50-24-105-29-164-18-62 11-109 27-146 16z" fill="#2b1b17"/>
+  <path d="M516 796c48-164 166-248 252-248s204 84 252 248z" fill="#b8d7ff"/>
+  <path d="M616 798c42-84 92-126 152-126 62 0 112 42 152 126z" fill="#eff6ff"/>
+  <circle cx="720" cy="342" r="12" fill="#1f2937"/>
+  <circle cx="816" cy="342" r="12" fill="#1f2937"/>
+  <path d="M718 416c38 28 78 28 116 0" fill="none" stroke="#3b241c" stroke-width="10" stroke-linecap="round"/>
+  <text x="768" y="888" text-anchor="middle" font-family="Arial, sans-serif" font-size="30" fill="#d1fae5">Local mock render</text>
+  <text x="768" y="930" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#cbd5e1">Set OPENAI_API_KEY for real image generation</text>
+  <foreignObject x="228" y="54" width="1080" height="120">
+    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family:Arial,sans-serif;color:#f8fafc;font-size:26px;line-height:1.35;text-align:center;">{safe_prompt}</div>
+  </foreignObject>
+</svg>"""
+        with open(filepath, "w", encoding="utf-8") as image_file:
+            image_file.write(svg)
+        return {
+            "url": f"/static/generated/{filename}",
+            "status": "completed",
+            "metadata": {
+                "prompt": prompt,
+                "style": style or "auto",
+                "quality": quality,
+                "aspect_ratio": aspect_ratio,
+                "engine": "Local Mock Renderer",
+                "mode": "mock",
+                "warning": "Real image generation needs OPENAI_API_KEY or local diffusion dependencies.",
+            },
+        }
 
     def generate_image(
         self,
@@ -55,9 +172,13 @@ class MediaService:
         Generates images locally using diffusers.StableDiffusionPipeline.
         Falls back to high-quality curated open visual streams if CPU/GPU memory is exceeded.
         """
+        openai_result = self._generate_with_openai(prompt, aspect_ratio, style, quality)
+        if openai_result:
+            return openai_result
+
         try:
             if settings.INFERENCE_MODE == "mock":
-                raise RuntimeError("Mock inference mode is enabled")
+                return self._generate_mock_image(prompt, aspect_ratio, style, quality)
             from diffusers import StableDiffusionPipeline
             if self.sd_pipeline is None:
                 # Load lightweight stable diffusion v1-5
@@ -85,6 +206,7 @@ class MediaService:
                     "quality": quality,
                     "device": self.device,
                     "engine": "Stable Diffusion v1.5",
+                    "mode": "real",
                     "resolution": self._aspect_resolution(aspect_ratio),
                 }
             }
@@ -115,6 +237,8 @@ class MediaService:
                     "resolution": self._aspect_resolution(aspect_ratio),
                     "device": "fallback-cpu",
                     "engine": "Curated Static Engine",
+                    "mode": "fallback",
+                    "warning": str(e),
                 }
             }
 

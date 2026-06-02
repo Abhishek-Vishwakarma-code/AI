@@ -1,0 +1,16 @@
+[frontend] ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+[frontend]  We detected multiple lockfiles and selected the directory of D:\Abhishek\AI\package-lock.json as the root directory.
+[frontend]  To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+[frontend]    See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+[frontend]  Detected additional lockfiles: 
+[frontend]    * D:\Abhishek\AI\frontend\package-lock.json
+[frontend] 
+[backend] INFO:     Started server process [8352]
+[backend] INFO:     Waiting for application startup.
+[backend] INFO:     Application startup complete.
+[backend] INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+[frontend] [browser] Error: No session available
+[frontend]     at handleSendMessage (file://D:/Abhishek/AI/frontend/.next/dev/static/chunks/frontend_src_app_page_tsx_0opcetn._.js:557:37) (file://D:/Abhishek/AI/frontend/.next/dev/static/chunks/frontend_src_app_page_tsx_0opcetn._.js:584:21)
+[frontend] [browser] Each child in a list should have a unique "key" prop.
+[frontend] 
+[frontend] Check the render method of `Home`. See https://react.dev/link/warning-keys for more information. 

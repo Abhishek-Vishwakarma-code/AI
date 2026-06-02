@@ -52,8 +52,9 @@ app.add_middleware(
 
 # Expose static directory for locally generated media files
 import os
-os.makedirs("d:/Abhishek/AI/backend/app/static/generated", exist_ok=True)
-app.mount("/static", StaticFiles(directory="d:/Abhishek/AI/backend/app/static"), name="static")
+os.makedirs(settings.GENERATED_MEDIA_DIR, exist_ok=True)
+os.makedirs(settings.DOCUMENTS_DIR, exist_ok=True)
+app.mount("/static", StaticFiles(directory=settings.STATIC_DIR), name="static")
 
 # Instantiate Core Services
 rag_service = RAGService()
@@ -266,9 +267,9 @@ async def upload_document(
         raise HTTPException(status_code=404, detail="Workspace not found")
         
     # Save file contents locally
-    os.makedirs("d:/Abhishek/AI/backend/app/static/documents", exist_ok=True)
+    os.makedirs(settings.DOCUMENTS_DIR, exist_ok=True)
     file_id = str(uuid.uuid4())
-    filepath = f"d:/Abhishek/AI/backend/app/static/documents/{file_id}_{file.filename}"
+    filepath = os.path.join(settings.DOCUMENTS_DIR, f"{file_id}_{file.filename}")
     
     contents = await file.read()
     with open(filepath, "wb") as f:
@@ -364,6 +365,10 @@ def generate_image(req: MediaRequest, current_user: User = Depends(get_current_u
         task.error_message = str(e)
         db.commit()
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post(f"{settings.API_V1_STR}/sandbox/generate/image")
+def sandbox_generate_image(req: MediaRequest):
+    return supervisor.media_service.generate_image(req.prompt, req.aspect_ratio)
 
 @app.post(f"{settings.API_V1_STR}/generate/video")
 def generate_video(req: MediaRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

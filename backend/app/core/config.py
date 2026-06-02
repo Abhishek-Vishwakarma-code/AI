@@ -1,6 +1,11 @@
 import os
+from pathlib import Path
 from pydantic_settings import BaseSettings
 from typing import Optional
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
+BACKEND_APP_DIR = BACKEND_DIR / "app"
+BACKEND_STATIC_DIR = BACKEND_APP_DIR / "static"
 
 class Settings(BaseSettings):
     APP_NAME: str = "Ultimate Multimodal AI Platform"
@@ -11,8 +16,11 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     # Databases
-    DATABASE_URL: str = "sqlite:///d:/Abhishek/AI/backend/app/platform.db"
+    DATABASE_URL: str = f"sqlite:///{(BACKEND_APP_DIR / 'platform.db').as_posix()}"
     REDIS_URL: Optional[str] = None
+    STATIC_DIR: str = str(BACKEND_STATIC_DIR)
+    GENERATED_MEDIA_DIR: str = str(BACKEND_STATIC_DIR / "generated")
+    DOCUMENTS_DIR: str = str(BACKEND_STATIC_DIR / "documents")
     
     # Vector Search
     QDRANT_URL: Optional[str] = None  # If None, will run in-memory
@@ -20,6 +28,7 @@ class Settings(BaseSettings):
     # Third Party APIs
     SEARCH_API_KEY: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
+    OPENAI_IMAGE_MODEL: str = "gpt-image-1.5"
     REPLICATE_API_TOKEN: Optional[str] = None
     
     # Operational Modes

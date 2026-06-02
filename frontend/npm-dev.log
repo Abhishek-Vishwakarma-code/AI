@@ -1,0 +1,18 @@
+
+> frontend@0.1.0 dev
+> next dev
+
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.106:3000
+✓ Ready in 1287ms
+Creating turbopack project { dir: 'D:\\Abhishek\\AI\\frontend', testMode: true }
+
+○ Compiling / ...
+ GET / 200 in 12.0s (next.js: 11.7s, application-code: 270ms)
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.0.106:3000
+✓ Ready in 1149ms
+Creating turbopack project { dir: 'D:\\Abhishek\\AI\\frontend', testMode: true }
+

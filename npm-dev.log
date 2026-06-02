@@ -1,0 +1,39 @@
+
+> ai-platform@1.0.0 dev
+> node scripts/dev.mjs
+
+[frontend] 
+[frontend] > frontend@0.1.0 dev
+[frontend] > next dev
+[frontend] 
+[frontend] ▲ Next.js 16.2.6 (Turbopack)
+[frontend] - Local:         http://localhost:3000
+[frontend] - Network:       http://192.168.0.106:3000
+[frontend] ✓ Ready in 453ms
+[frontend] Creating turbopack project { dir: 'D:\\Abhishek\\AI\\frontend', testMode: true }
+[frontend] 
+[frontend]  GET / 200 in 339ms (next.js: 156ms, application-code: 183ms)
+[backend] Running MediaService in mock mode. Skipping local model initialization.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] Running LocalLLM in mock mode. Skipping transformer model load.
+[backend] INFO:     127.0.0.1:59694 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:59697 - "POST /api/v1/generate/image HTTP/1.1" 200 OK
+[frontend]  GET / 200 in 110ms (next.js: 36ms, application-code: 74ms)
+[frontend]  GET / 200 in 39ms (next.js: 3ms, application-code: 36ms)
+[backend] INFO:     127.0.0.1:65138 - "POST /api/v1/auth/login HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:65140 - "GET /api/v1/auth/me HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:65142 - "GET /api/v1/workspaces HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:65144 - "GET /api/v1/workspaces/1/sessions HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:65146 - "GET /api/v1/workspaces/1/documents HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:62250 - "GET /api/v1/workspaces/1/documents HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:52175 - "POST /api/v1/generate/image HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:64864 - "GET /static/generated/mock_1780428285.svg HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:62559 - "POST /api/v1/generate/image HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:63350 - "GET /static/generated/mock_1780428305.svg HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:51104 - "GET /api/v1/workspaces/1/documents HTTP/1.1" 200 OK
+[backend] INFO:     127.0.0.1:54043 - "POST /api/v1/workspaces/1/sessions?title=hii HTTP/1.1" 200 OK

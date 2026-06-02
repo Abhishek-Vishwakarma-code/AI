@@ -105,6 +105,20 @@ type DocumentRecord = {
   status?: string;
 };
 
+type MediaMetadata = {
+  engine?: string;
+  mode?: "real" | "mock" | "fallback" | string;
+  warning?: string;
+  revised_prompt?: string;
+};
+
+type MediaGalleryItem = {
+  type: MediaType;
+  prompt: string;
+  url: string;
+  metadata?: MediaMetadata;
+};
+
 type SpeechRecognitionResultEventLike = {
   results?: {
     [index: number]: {
@@ -138,6 +152,7 @@ const OFFLINE_THOUGHTS: AgentStep[] = [
 ];
 
 const MODEL_OPTIONS = ["Gemini 2.5 Pro", "Gemini 2.5 Flash", "Gemini Nano Local", "OmniAgent Supervisor"];
+const DEFAULT_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "/api/v1";
 
 const SUGGESTIONS = [
   "Create a launch plan for a local AI product",
@@ -188,7 +203,7 @@ export default function Home() {
   const [authName, setAuthName] = useState("");
   const [isRegistering, setIsRegistering] = useState(false);
   const [authError, setAuthError] = useState("");
-  const [apiBaseUrl, setApiBaseUrl] = useState("http://localhost:8000/api/v1");
+  const [apiBaseUrl, setApiBaseUrl] = useState(DEFAULT_API_BASE_URL);
 
   const [activeTab, setActiveTab] = useState<AppTab>("chat");
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
@@ -234,9 +249,11 @@ export default function Home() {
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [generatingMedia, setGeneratingMedia] = useState(false);
   const [mediaResultUrl, setMediaResultUrl] = useState<string | null>(null);
-  const [mediaGallery, setMediaGallery] = useState([
-    { type: "image" as MediaType, prompt: "Cyberpunk computer hub", url: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&auto=format&fit=crop" },
-    { type: "image" as MediaType, prompt: "A glowing galaxy", url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop" }
+  const [mediaResultMetadata, setMediaResultMetadata] = useState<MediaMetadata | null>(null);
+  const [mediaError, setMediaError] = useState("");
+  const [mediaGallery, setMediaGallery] = useState<MediaGalleryItem[]>([
+    { type: "image", prompt: "Cyberpunk computer hub", url: "https://images.unsplash.com/photo-1508739773434-c26b3d09e071?w=400&auto=format&fit=crop" },
+    { type: "image", prompt: "A glowing galaxy", url: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=400&auto=format&fit=crop" }
   ]);
 
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
@@ -684,36 +701,64 @@ export default function Home() {
 
     setGeneratingMedia(true);
     setMediaResultUrl(null);
+    setMediaResultMetadata(null);
+    setMediaError("");
     const prompt = `${mediaPrompt}. Style: ${mediaStyle}. Aspect ratio: ${aspectRatio}.`;
 
-    if (isSandbox || !token) {
+    if ((isSandbox || !token) && mediaType !== "image") {
       setTimeout(() => {
         let dummyUrl = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&auto=format&fit=crop";
         if (mediaType === "video") dummyUrl = "https://assets.mixkit.co/videos/preview/mixkit-abstract-laser-lights-background-32124-large.mp4";
         if (mediaType === "audio") dummyUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
         setMediaResultUrl(dummyUrl);
-        setMediaGallery((prev) => [{ type: mediaType, prompt, url: dummyUrl }, ...prev]);
+        const metadata = { engine: "Sandbox Preview", mode: "mock", warning: "Sign in or configure backend media providers for real generation." };
+        setMediaResultMetadata(metadata);
+        setMediaGallery((prev) => [{ type: mediaType, prompt, url: dummyUrl, metadata }, ...prev]);
         setGeneratingMedia(false);
       }, 1200);
       return;
     }
 
     try {
-      const res = await fetch(`${apiBaseUrl}/generate/${mediaType}`, {
+      const endpoint = `${apiBaseUrl}/generate/${mediaType}`;
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      let generationToken = token && !isSandbox ? token : null;
+
+      if (!generationToken) {
+        const authRes = await fetch(`${apiBaseUrl}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: "admin@platform.ai", password: "password123" })
+        });
+        if (authRes.ok) {
+          const authData = await authRes.json();
+          generationToken = authData.access_token;
+        }
+      }
+
+      if (!generationToken) {
+        throw new Error("Backend authentication is required for generation.");
+      }
+
+      headers.Authorization = `Bearer ${generationToken}`;
+
+      const res = await fetch(endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+        headers,
         body: JSON.stringify({ prompt, aspect_ratio: aspectRatio })
       });
       if (res.ok) {
         const data = await res.json();
         setMediaResultUrl(data.url);
-        setMediaGallery((prev) => [{ type: mediaType, prompt, url: data.url }, ...prev]);
+        setMediaResultMetadata(data.metadata || null);
+        setMediaGallery((prev) => [{ type: mediaType, prompt, url: data.url, metadata: data.metadata }, ...prev]);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setMediaError(err.detail || "Generation failed.");
       }
     } catch (e) {
       console.error(e);
+      setMediaError("Could not reach the backend generation service.");
     } finally {
       setGeneratingMedia(false);
     }
@@ -1255,7 +1300,8 @@ export default function Home() {
             <div className="min-h-0 overflow-y-auto p-5">
               <div className="flex min-h-[360px] items-center justify-center rounded-lg border border-white/10 bg-[#101018] p-4">
                 {generatingMedia && <Loader2 className="h-8 w-8 animate-spin text-teal-300" />}
-                {!generatingMedia && !mediaResultUrl && <div className="text-sm text-gray-500">Your generation appears here.</div>}
+                {!generatingMedia && !mediaResultUrl && !mediaError && <div className="text-sm text-gray-500">Your generation appears here.</div>}
+                {!generatingMedia && mediaError && <div className="max-w-md text-center text-sm text-pink-200">{mediaError}</div>}
                 {!generatingMedia && mediaResultUrl && mediaType === "image" && <img src={mediaResultUrl} alt="Generated media" className="max-h-[520px] rounded-md object-contain" />}
                 {!generatingMedia && mediaResultUrl && mediaType === "video" && <video src={mediaResultUrl} controls className="max-h-[520px] rounded-md" />}
                 {!generatingMedia && mediaResultUrl && mediaType === "audio" && (
@@ -1265,9 +1311,15 @@ export default function Home() {
                   </div>
                 )}
               </div>
+              {mediaResultMetadata && (
+                <div className={`mt-3 rounded-md border px-3 py-2 text-xs ${mediaResultMetadata.mode === "real" ? "border-teal-400/30 bg-teal-400/10 text-teal-100" : "border-amber-300/25 bg-amber-300/10 text-amber-100"}`}>
+                  {mediaResultMetadata.engine || "Generation engine"} · {mediaResultMetadata.mode || "unknown"}
+                  {mediaResultMetadata.warning && <span className="ml-2 text-amber-200">{mediaResultMetadata.warning}</span>}
+                </div>
+              )}
               <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
                 {mediaGallery.map((item, index) => (
-                  <button key={`${item.url}-${index}`} onClick={() => { setMediaType(item.type); setMediaResultUrl(item.url); }} className="h-28 overflow-hidden rounded-md border border-white/10 bg-[#101018] text-left">
+                  <button key={`${item.url}-${index}`} onClick={() => { setMediaType(item.type); setMediaResultUrl(item.url); setMediaResultMetadata(item.metadata || null); setMediaError(""); }} className="h-28 overflow-hidden rounded-md border border-white/10 bg-[#101018] text-left">
                     {item.type === "image" ? <img src={item.url} alt="" className="h-full w-full object-cover" /> : <div className="flex h-full items-center justify-center text-teal-300">{item.type === "video" ? <Video /> : <Volume2 />}</div>}
                   </button>
                 ))}
